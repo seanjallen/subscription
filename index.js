@@ -1,7 +1,17 @@
-function Handler(f, once, priority) {
+function Handler(f, options) {
+  if(!options) {
+    options = {}
+  }
   this.f = f
-  this.once = once
-  this.priority = priority
+  this.once = options.once || false
+  this.priority = options.priority || 0
+  if(options.context !== undefined) {
+    this.context = options.context
+  }
+}
+
+Handler.prototype.dispatch = function() {
+  return this.f.apply(this.context || null, arguments)
 }
 
 function Subscription() {
@@ -26,18 +36,16 @@ Subscription.prototype.handlersForDispatch = function() {
   return handlers
 }
 
-Subscription.prototype.add = function(f, priority) {
-  insert(this, new Handler(f, false, priority || 0))
+Subscription.prototype.add = function(f, options) {
+  insert(this, new Handler(f, options))
 }
 
-Subscription.prototype.addOnce = function(f, priority) {
-  insert(this, new Handler(f, true, priority || 0))
-}
-
-Subscription.prototype.remove = function(f) {
-  for (var i = 0; i < this.handlers.length; i++) if (this.handlers[i].f == f) {
-    this.handlers = this.handlers.slice(0, i).concat(this.handlers.slice(i + 1))
-    return
+Subscription.prototype.remove = function(f, context) {
+  for (var i = 0; i < this.handlers.length; i++) {
+    if (this.handlers[i].f == f && (context === undefined || context === this.handlers[i].context)) {
+      this.handlers = this.handlers.slice(0, i).concat(this.handlers.slice(i + 1))
+      return
+    }
   }
 }
 
@@ -48,7 +56,7 @@ Subscription.prototype.hasHandler = function() {
 Subscription.prototype.dispatch = function() {
   var handlers = this.handlersForDispatch()
   for (var i = 0; i < handlers.length; i++)
-    handlers[i].f.apply(null, arguments)
+    handlers[i].dispatch.apply(handlers[i], arguments)
 }
 
 function PipelineSubscription() {
@@ -61,7 +69,7 @@ PipelineSubscription.prototype = new Subscription
 PipelineSubscription.prototype.dispatch = function(value) {
   var handlers = this.handlersForDispatch()
   for (var i = 0; i < handlers.length; i++)
-    value = handlers[i].f(value)
+    value = handlers[i].dispatch(value)
   return value
 }
 
@@ -75,7 +83,7 @@ StoppableSubscription.prototype = new Subscription
 StoppableSubscription.prototype.dispatch = function() {
   var handlers = this.handlersForDispatch()
   for (var i = 0; i < handlers.length; i++) {
-    var result = handlers[i].f.apply(null, arguments)
+    var result = handlers[i].dispatch.apply(handlers[i], arguments)
     if (result) return result
   }
 }
@@ -90,6 +98,6 @@ DOMSubscription.prototype = new Subscription
 DOMSubscription.prototype.dispatch = function(event) {
   var handlers = this.handlersForDispatch()
   for (var i = 0; i < handlers.length; i++)
-    if (handlers[i].f(event) || event.defaultPrevented) return true
+    if (handlers[i].dispatch(event) || event.defaultPrevented) return true
   return false
 }
