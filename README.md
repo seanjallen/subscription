@@ -43,21 +43,26 @@ install it is with [NPM](https://www.npmjs.com/package/subscription).
 A subscription is an object that you can add subscribers (functions)
 to, which will be called every time the subscription is dispatched.
 
-**`add`**`(f: Function, priority: ?number)`
+**`add`**`(f: Function, options: ?object)`
 
 Add a function of the appropriate type for this subscription to be
-called whenever the subscription is dispatched. When `priority` is
-provided (default is zero), it determines when the function is called
-relative to other handlers—those with a high priority come first.
+called whenever the subscription is dispatched. Add supports the
+following options:
 
-**`addOnce`**`(f: Function, priority: ?number)`
++ **`once`** `Boolean (default = false)`
+  - Only call this function once, the next time this subscription
+  is dispatched.
++ **`priority`** `Number (default = 0)`
+  - Determines when the function is called relative to other handlers,
+  those with a high priority come first.
++ **`context`** `any (default = null)`
+  - The value that "this" will be set to when the function is invoked.
 
-Add a function to be called once, the next time this subscription is
-dispatched.
+**`remove`**`(f: Function, context ?any)`
 
-**`remove`**`(f: Function)`
-
-Remove the given subscriber from the subscription.
+Remove the given function from the subscription. If context is provided,
+the function will only be removed for the given context (see add method
+"context" option).
 
 **`hasHandler`**`() → bool`
 
